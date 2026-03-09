@@ -1,0 +1,301 @@
+import streamlit as st
+from groq import Groq
+from dotenv import load_dotenv
+import os
+
+# ================== LOAD API ==================
+
+GROQ_API_KEY = "ENTER YOUR OWN API KEY" 
+
+client = Groq(api_key=GROQ_API_KEY)
+
+# ================== PAGE CONFIG ==================
+
+st.set_page_config(
+    page_title="SkillLaunch AI",
+    page_icon="🚀",
+    layout="centered"
+)
+
+dark_css = """
+<style>
+.stApp {
+    background-color: #0e1117;
+    color: #fafafa;
+}
+h1, h2, h3, h4 {
+    color: #fafafa;
+}
+.stTabs [data-baseweb="tab"] {
+    color: #cfcfcf;
+}
+.stTabs [aria-selected="true"] {
+    background-color: #1f2937;
+}
+</style>
+"""
+st.markdown(dark_css, unsafe_allow_html=True)
+
+# ================== SESSION ==================
+
+if "interview_started" not in st.session_state:
+    st.session_state.interview_started = False
+
+if "interview_chat" not in st.session_state:
+    st.session_state.interview_chat = []
+
+if "weaknesses" not in st.session_state:
+    st.session_state.weaknesses = set()
+
+# ================== HEADER ==================
+
+st.title("🚀 SkillLaunch AI")
+st.caption("Career Roadmap + HR Interview Simulator")
+st.divider()
+
+tab1, tab2, tab3 = st.tabs(
+    ["📚 Career Roadmap", "🎤 HR Interview Simulator", "💼 Recommended Opportunities"]
+)
+
+# ==================================================
+# ================= CAREER ROADMAP =================
+# ==================================================
+
+with tab1:
+
+    st.subheader("📚 Personalized Career Roadmap")
+
+    with st.expander("Fill Your Details", expanded=True):
+
+        name = st.text_input("Your Name")
+
+        stream = st.selectbox(
+            "Stream",
+            ["CSE", "IT", "ECE", "Other"]
+        )
+
+        level = st.selectbox(
+            "Current Level",
+            ["Beginner", "Intermediate", "Advanced"]
+        )
+
+        role = st.selectbox(
+            "Career You Are Aiming For",
+            ["Software Developer", "AI Engineer", "Data Scientist", "Web Developer"]
+        )
+
+        skills = st.multiselect(
+            "Your Skills",
+            ["Python", "C++", "Java", "HTML/CSS", "SQL", "ML", "DSA"]
+        )
+
+        study_time = st.slider(
+            "Daily Study Time (Hours)",
+            1, 8, 3
+        )
+
+        weakness = st.text_input("Your Weakness (Optional)")
+
+    if st.button("🎯 Generate Career Plan"):
+
+        prompt = f"""
+ou are a strict professional career coach.
+
+Rules:
+- No greetings
+- No emojis
+- No motivational talk
+- No filler sentences
+- Be concise
+- Be practical
+
+Your job:
+Create a clear career roadmap.
+
+Format strictly:
+
+1. Target Role
+2. Required Skills
+3. step by step Learning Plan
+4. 2-3 interesting industry oriented project ideas
+5. Best books/online resources to check
+6. Mistakes To Avoid
+
+Use bullet points.
+Focus on Indian job market and entry-level jobs.
+"""
+
+        with st.spinner("Generating roadmap..."):
+            res = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[
+                    {"role": "system", "content": "You are a strict career mentor."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=900
+            )
+
+            st.success("Career Roadmap Ready 🚀")
+            st.markdown(res.choices[0].message.content)
+
+# ==================================================
+# ================= INTERVIEW SIM ==================
+# ==================================================
+
+with tab2:
+
+    st.subheader("🎤 HR Interview Simulator")
+
+    role_for_interview = st.selectbox(
+        "Select Job Role",
+        ["Software Developer", "AI Engineer", "Data Scientist", "Web Developer"]
+    )
+
+    if not st.session_state.interview_started:
+        if st.button("▶️ Start Interview"):
+            st.session_state.interview_started = True
+            st.session_state.interview_chat = []
+            st.session_state.weaknesses = set()
+
+            st.session_state.interview_chat.append({
+                "role": "assistant",
+                "content": "Welcome. Please introduce yourself."
+            })
+            st.rerun()
+
+    if st.session_state.interview_started:
+
+        st.divider()
+
+        for msg in st.session_state.interview_chat:
+            if msg["role"] == "assistant":
+                st.markdown(f"**🤖 HR:** {msg['content']}")
+            else:
+                st.markdown(f"**🧑 You:** {msg['content']}")
+
+        st.divider()
+
+        user_input = st.text_input("Your Answer")
+
+        if st.button("Send Answer") and user_input.strip():
+
+            st.session_state.interview_chat.append({
+                "role": "user",
+                "content": user_input
+            })
+
+            history = ""
+            for msg in st.session_state.interview_chat:
+                history += f"{msg['role']}: {msg['content']}\n"
+
+            prompt = f"""
+You are a senior HR interviewer for {role_for_interview}.
+
+Conversation:
+{history}
+
+Tasks:
+1. Short feedback
+2. Detect weaknesses:
+   - Poor communication
+   - Weak fundamentals
+   - Lack of examples
+3. Ask ONE next question
+
+FORMAT:
+Feedback:
+Weakness Detected:
+Next Question:
+"""
+
+            with st.spinner("HR evaluating..."):
+                res = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[
+                        {"role": "system", "content": "You are a professional HR interviewer."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=300
+                )
+
+                reply = res.choices[0].message.content
+
+                for w in ["Poor communication", "Weak fundamentals", "Lack of examples"]:
+                    if w.lower() in reply.lower():
+                        st.session_state.weaknesses.add(w)
+
+                st.session_state.interview_chat.append({
+                    "role": "assistant",
+                    "content": reply
+                })
+
+                st.rerun()
+
+        if st.session_state.weaknesses:
+            st.divider()
+            st.subheader("⚠️ Weakness Tracker")
+            for w in st.session_state.weaknesses:
+                st.markdown(f"- {w}")
+
+        if st.button("⛔ End Interview"):
+            st.session_state.interview_started = False
+            st.session_state.interview_chat = []
+            st.session_state.weaknesses = set()
+            st.rerun()
+
+# ==================================================
+# =========== RECOMMENDED OPPORTUNITIES ============
+# ==================================================
+
+with tab3:
+
+    st.subheader("💼 Recommended Opportunities")
+
+    st.markdown(
+        "Based on your **career goal, skills, and level**, here’s where you should apply 👇"
+    )
+
+    if st.button("🔍 Show Opportunities"):
+
+        prompt = f"""
+Suggest realistic opportunities for:
+
+Target Career: {role}
+Current Level: {level}
+Skills: {skills}
+
+FORMAT:
+
+### 👔 Job / Internship Roles
+- bullets
+
+### 🌐 Platforms to Apply
+- bullets (no fake data)
+
+### 📜 Certifications That Help
+- bullets
+
+### 🚀 Smart Application Strategy
+- bullets (practical)
+"""
+
+        with st.spinner("Finding opportunities..."):
+            res = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[
+                    {"role": "system", "content": "You are a hiring strategist."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=600
+            )
+
+            st.success("Opportunities Found 🚀")
+            st.markdown(res.choices[0].message.content)
+
+# ================== FOOTER ==================
+
+st.divider()
+st.caption("Built for Hackathon | AI-Ready Workforce 🚀")

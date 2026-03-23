@@ -7,7 +7,7 @@ This project was built as a prototype during the AI for Atmanirbhar Bharat: HEI 
 
 ---
 
-## 🎯 Features
+## 🎯 Features (VERSION 1.0)
 
 ### Personalized Career Roadmaps
 Generate AI-powered career plans tailored to the user’s:
@@ -62,3 +62,5 @@ SkillLaunchAI helps students:
 - prepare for the job market
 
 ___
+
+VERSION 2.0 in development

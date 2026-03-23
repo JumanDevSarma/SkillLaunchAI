@@ -3,7 +3,7 @@
 SkillLaunchAI is a user-intuitive, AI-integrated career coach designed for college students.  
 It helps students prepare for the workforce by generating personalized career roadmaps, simulating HR interviews, and recommending opportunities based on skills and career goals.
 
-This project was built as a prototype during the AI for Atmanirbhar Bharat: HEI Pre-Summit Hackathon (2026) at Assam down town University, where Team Reload won 2nd Prize 🏆.
+This project was built as a prototype during the AI for Atmanirbhar Bharat: HEI Pre-Summit Hackathon (2026) at Assam down town University, where this project won the 2nd Prize 🏆.
 
 ---
 
